@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/go-github/v60/github"
+	"github.com/google/go-github/v70/github"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/github-mcp/util"
@@ -51,6 +51,7 @@ func RegisterGitHubTool(s *server.MCPServer) {
 		mcp.WithString("owner", mcp.Required(), mcp.Description("Repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("Repository name")),
 		mcp.WithString("number", mcp.Required(), mcp.Description("Pull request number")),
+		mcp.WithString("merge_method", mcp.Description("Merge method (merge/squash/rebase). Leave empty to not merge.")),
 	)
 
 	prDetailsTool := mcp.NewTool("github_get_pr_details",
@@ -84,14 +85,6 @@ func RegisterGitHubTool(s *server.MCPServer) {
 		mcp.WithString("head", mcp.Required(), mcp.Description("Name of the branch where your changes are implemented")),
 		mcp.WithString("base", mcp.Required(), mcp.Description("Name of the branch you want your changes pulled into")),
 		mcp.WithString("body", mcp.Description("Pull request description")),
-	)
-
-	prActionTool := mcp.NewTool("github_pr_action",
-		mcp.WithDescription("Approve or close a pull request"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("Repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("Repository name")),
-		mcp.WithString("number", mcp.Required(), mcp.Description("Pull request number")),
-		mcp.WithString("action", mcp.Required(), mcp.Description("Action to take (approve/close)")),
 	)
 
 	issueListTool := mcp.NewTool("github_list_issues",
@@ -132,7 +125,6 @@ func RegisterGitHubTool(s *server.MCPServer) {
 	s.AddTool(prCommentTool, util.ErrorGuard(commentOnPullRequestHandler))
 	s.AddTool(fileContentTool, util.ErrorGuard(getGitHubFileContentHandler))
 	s.AddTool(createPRTool, util.ErrorGuard(createPullRequestHandler))
-	s.AddTool(prActionTool, util.ErrorGuard(prActionHandler))
 	s.AddTool(issueListTool, util.ErrorGuard(listIssuesHandler))
 	s.AddTool(issueDetailsTool, util.ErrorGuard(getIssueHandler))
 	s.AddTool(issueCommentTool, util.ErrorGuard(commentOnIssueHandler))
@@ -375,43 +367,6 @@ func createPullRequestHandler(ctx context.Context, request mcp.CallToolRequest) 
 	return mcp.NewToolResultText(fmt.Sprintf("Pull request created successfully: %s", pr.GetHTMLURL())), nil
 }
 
-func prActionHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	owner := request.Params.Arguments["owner"].(string)
-	repo := request.Params.Arguments["repo"].(string)
-	number := request.Params.Arguments["number"].(string)
-	action := request.Params.Arguments["action"].(string)
-
-	prNumber := 0
-	fmt.Sscanf(number, "%d", &prNumber)
-
-	switch action {
-	case "approve":
-		// Create approval review
-		review := &github.PullRequestReviewRequest{
-			Event: github.String("APPROVE"),
-		}
-		_, _, err := githubClient().PullRequests.CreateReview(context.Background(), owner, repo, prNumber, review)
-		if err != nil {
-			return nil, fmt.Errorf("failed to approve pull request: %v", err)
-		}
-		return mcp.NewToolResultText("Pull request approved successfully"), nil
-
-	case "close":
-		// Close PR
-		pr := &github.PullRequest{
-			State: github.String("closed"),
-		}
-		_, _, err := githubClient().PullRequests.Edit(context.Background(), owner, repo, prNumber, pr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to close pull request: %v", err)
-		}
-		return mcp.NewToolResultText("Pull request closed successfully"), nil
-
-	default:
-		return nil, fmt.Errorf("invalid action: %s. Must be either 'approve' or 'close'", action)
-	}
-}
-
 func listIssuesHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	owner, ok := request.Params.Arguments["owner"].(string)
 	if !ok || owner == "" {
@@ -613,10 +568,11 @@ func approvePRHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 	owner := request.Params.Arguments["owner"].(string)
 	repo := request.Params.Arguments["repo"].(string)
 	number := request.Params.Arguments["number"].(string)
-
+	mergeMethod := request.Params.Arguments["merge_method"].(string)
 	prNumber := 0
 	fmt.Sscanf(number, "%d", &prNumber)
 
+	// First approve the PR
 	review := &github.PullRequestReviewRequest{
 		Event: github.String("APPROVE"),
 	}
@@ -625,5 +581,15 @@ func approvePRHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 		return nil, fmt.Errorf("failed to approve pull request: %v", err)
 	}
 
-	return mcp.NewToolResultText("Pull request approved successfully"), nil
+	if mergeMethod != "" {
+		// Attempt to merge the PR
+		_, _, err = githubClient().PullRequests.Merge(context.Background(), owner, repo, prNumber, "Auto-merge after approval", &github.PullRequestOptions{
+			MergeMethod: mergeMethod,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge pull request: %v", err)
+		}
+	}
+
+	return mcp.NewToolResultText("Pull request approved and merge initiated successfully"), nil
 }
