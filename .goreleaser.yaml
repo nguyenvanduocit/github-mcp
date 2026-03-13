@@ -1,0 +1,81 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: github-mcp
+    main: .
+    binary: github-mcp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+  - id: github-cli
+    main: ./cmd/github-cli
+    binary: github-cli
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - name: github-mcp
+    ids:
+      - github-mcp
+    repository:
+      owner: nguyenvanduocit
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/nguyenvanduocit/github-mcp"
+    description: "github-mcp - MCP server"
+    install: |
+      bin.install "github-mcp"
+
+  - name: github-cli
+    ids:
+      - github-cli
+    repository:
+      owner: nguyenvanduocit
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/nguyenvanduocit/github-mcp"
+    description: "github-cli - CLI tool"
+    install: |
+      bin.install "github-cli"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
