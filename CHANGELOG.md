@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/nguyenvanduocit/github-mcp/compare/v1.0.0...v1.0.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* use merge instead of squash to preserve commit SHAs for release-please ([e47b53e](https://github.com/nguyenvanduocit/github-mcp/commit/e47b53ed00473b0f7d1856f76ebefc94eb33a1f8))
+
 ## 1.0.0 (2026-03-13)
 
 
