@@ -56,6 +56,69 @@ GITHUB_TOKEN=your_github_token
 }
 ```
 
+## CLI Usage
+
+In addition to the MCP server, `github-mcp` ships a standalone CLI binary (`github-cli`) for direct terminal use — no MCP client needed.
+
+### Installation
+
+```bash
+just install-cli
+# or
+go install github.com/nguyenvanduocit/github-mcp/cmd/cli@latest
+```
+
+### Quick Start
+
+```bash
+export GITHUB_TOKEN=your-github-token
+# or
+github-cli --env .env <command> [flags]
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `list-repos` | List repositories for a user/org |
+| `get-repo` | Get repository details |
+| `list-prs` | List pull requests |
+| `get-pr` | Get pull request details |
+| `create-pr` | Create a pull request |
+| `create-pr-comment` | Comment on a pull request |
+| `get-file` | Get file content from a repo |
+| `list-issues` | List issues |
+| `get-issue` | Get issue details |
+| `comment-issue` | Comment on an issue |
+| `issue-action` | Close or reopen an issue |
+| `approve-pr` | Approve a pull request |
+
+### Examples
+
+```bash
+# List repos
+github-cli list-repos --owner myorg --type public
+
+# List open PRs
+github-cli list-prs --owner myorg --repo myrepo --state open
+
+# Create a PR
+github-cli create-pr --owner myorg --repo myrepo \
+  --title "My PR" --head feature-branch --base main
+
+# Get file content
+github-cli get-file --owner myorg --repo myrepo --path src/main.go
+
+# JSON output
+github-cli list-issues --owner myorg --repo myrepo --output json | jq '.[].title'
+```
+
+### Flags
+
+Every command accepts:
+- `--env string` — Path to `.env` file
+- `--output string` — Output format: `text` (default) or `json`
+
 ## Contributing
 
 1. Fork the repository
