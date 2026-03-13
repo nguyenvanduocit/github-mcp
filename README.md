@@ -65,7 +65,7 @@ In addition to the MCP server, `github-mcp` ships a standalone CLI binary (`gith
 ```bash
 just install-cli
 # or
-go install github.com/nguyenvanduocit/github-mcp/cmd/cli@latest
+go install github.com/nguyenvanduocit/github-mcp/cmd/github-cli@latest
 ```
 
 ### Quick Start
