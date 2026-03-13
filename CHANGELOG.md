@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/nguyenvanduocit/github-mcp/compare/v1.0.1...v1.0.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* checkout tagged commit in goreleaser to fix tag mismatch ([a0761d2](https://github.com/nguyenvanduocit/github-mcp/commit/a0761d224b3d9e9174f14afebf1ad766e072fd1e))
+
 ## [1.0.1](https://github.com/nguyenvanduocit/github-mcp/compare/v1.0.0...v1.0.1) (2026-03-13)
 
 
